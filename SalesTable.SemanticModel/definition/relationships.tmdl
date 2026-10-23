@@ -1,0 +1,13 @@
+relationship 165a53d0-dce5-40da-8109-fb26722ae3ee
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Date.Date
+	toColumn: LocalDateTable_2b99a5b3-b760-4dab-9cff-10d81c265778.Date
+
+relationship 340d364b-8ce7-a599-850e-0b0abf18b84b
+	fromColumn: Sales.CustomerID
+	toColumn: Customers.CustomerID
+
+relationship 7d47cb05-6752-701b-4c11-9adb785c38ed
+	fromColumn: Sales.InvoiceDate
+	toColumn: Date.Date
+

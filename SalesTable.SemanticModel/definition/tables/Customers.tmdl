@@ -1,0 +1,48 @@
+table Customers
+	lineageTag: 8e9c14f2-2184-4588-bfa8-d73fb23d3711
+
+	column CustomerID
+		dataType: string
+		lineageTag: 91c94a95-5d49-43bb-8eb1-b76f69a447c7
+		summarizeBy: none
+		sourceColumn: CustomerID
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column CustomerName
+		dataType: string
+		lineageTag: 3534abc2-6192-46af-9bf1-5ef07d7c3923
+		summarizeBy: none
+		sourceColumn: CustomerName
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Region
+		dataType: string
+		lineageTag: be6789da-a745-423a-b7da-9e497168b122
+		summarizeBy: none
+		sourceColumn: Region
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Customers = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\RINKU\Desktop\SunflowerLab-LearningResources\Customers.csv"),[Delimiter=",", Columns=3, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Column1", type text}, {"Column2", type text}, {"Column3", type text}}),
+				    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"Column1", "CustomerID"}, {"Column2", "CustomerName"}, {"Column3", "Region"}}),
+				    #"Removed Top Rows" = Table.Skip(#"Renamed Columns",1)
+				in
+				    #"Removed Top Rows"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

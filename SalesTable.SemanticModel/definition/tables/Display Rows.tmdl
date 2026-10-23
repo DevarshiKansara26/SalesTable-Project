@@ -1,0 +1,33 @@
+table 'Display Rows'
+	lineageTag: 5c53145d-74ad-4507-bf8a-b7ea1ae5c864
+
+	column Label
+		lineageTag: ff017f95-8994-436c-8d5a-5381d9ad2263
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Label]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Type
+		lineageTag: fdde6810-bb4d-48ef-86b1-82893486a1ad
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Type]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Display Rows' = calculated
+		mode: import
+		source =
+				
+				UNION(
+				    SELECTCOLUMNS(Customers, "Label", Customers[CustomerName], "Type", "Customer"),
+				    DATATABLE(
+				        "Label", STRING, "Type", STRING,
+				        {{"Subtotal", "Summary"}, {"Other", "Summary"}, {"Total", "Summary"}}
+				    )
+				)
+
+	annotation PBI_Id = aa459c4f6ba04690b4b0858e27f1ad70
+

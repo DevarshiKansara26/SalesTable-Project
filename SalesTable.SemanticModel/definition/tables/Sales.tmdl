@@ -1,0 +1,476 @@
+table Sales
+	lineageTag: 48ca0c2b-c142-4bce-9e97-57eee391bff7
+
+	measure 'Total Sales' = SUM(Sales[SalesAmount])
+		formatString: "₹"\ #,0.###############;#,0.###############\ -"₹";"₹"\ #,0.###############
+		lineageTag: 149461ea-23b0-46a9-b4f7-03c54844471e
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-IN"}
+
+	measure 'As Of Date' = DATE(2025, 10, 31)
+		formatString: General Date
+		lineageTag: 9064468e-6a9c-4642-bdb6-6fb5afbfcec9
+
+		changedProperty = IsHidden
+
+	measure YTD =
+			
+			VAR SelectedDate = [As Of Date]
+			VAR SelectedYear = YEAR(SelectedDate)
+			RETURN
+			    CALCULATE(
+			        [Total Sales],
+			        FILTER(
+			            ALL('Date'),
+			            'Date'[Year] = SelectedYear
+			                && 'Date'[Date] <= SelectedDate
+			        )
+			    )
+		formatString: #,0
+		lineageTag: 8141d20d-d975-479b-8cfd-fd159842458a
+
+		changedProperty = IsHidden
+
+	measure PYTD =
+			
+			VAR SelectedDate = [As Of Date]
+			RETURN
+			    CALCULATE(
+			        [Total Sales],
+			        FILTER(
+			            ALL('Date'),
+			            'Date'[Year] = YEAR(SelectedDate) - 1
+			                && 'Date'[Date] <= EDATE(SelectedDate, -12)
+			        )
+			    )
+		formatString: #,0
+		lineageTag: 176bf871-f899-48fa-ae00-da199cb47639
+
+		changedProperty = IsHidden
+
+	measure YoY = [YTD] - [PYTD]
+		formatString: #,0
+		isHidden
+		lineageTag: 43f02070-2ade-4027-908d-ea563d639a4c
+
+		changedProperty = IsHidden
+
+	measure 'YoY %' = DIVIDE([YoY], [PYTD])
+		formatString: 0%;-0%;0%
+		isHidden
+		lineageTag: 745635e3-ca45-4197-a316-5bc4ce7ec922
+
+		changedProperty = IsHidden
+
+	measure TTM =
+			
+			CALCULATE(
+			    [Total Sales],
+			    DATESINPERIOD('Date'[Date], [As Of Date], -12, MONTH)
+			)
+		formatString: #,0
+		isHidden
+		lineageTag: 92504d94-cf57-4752-8138-749fd77a80b0
+
+		changedProperty = IsHidden
+
+	measure 'Sales 2025' = CALCULATE([Total Sales], 'Date'[Year] = 2025)
+		formatString: #,0
+		lineageTag: 377e65c8-8bc7-4174-867b-8ea6fb4f601a
+
+		changedProperty = IsHidden
+
+	measure 'Grand Total YTD' = CALCULATE([YTD], ALL(Customers))
+		formatString: "₹"\ #,0.###############;#,0.###############\ -"₹";"₹"\ #,0.###############
+		lineageTag: 63742580-9ed0-4a51-a014-5401c4c5f055
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-IN"}
+
+	measure 'YTD % of Total' = DIVIDE([YTD], [Grand Total YTD])
+		formatString: 0.00%;-0.00%;0.00%
+		isHidden
+		lineageTag: 0cbfdbc6-6012-4bb4-81aa-4807582d30f3
+
+		changedProperty = IsHidden
+
+	measure Rank = RANKX(ALL(Customers[CustomerName]), [YTD], , DESC, Dense)
+		formatString: 0
+		lineageTag: ddf914ee-3186-4805-83e3-d8e2e9917511
+
+		changedProperty = IsHidden
+
+	measure 'Cumulative YTD %' =
+			
+			VAR CurrentYTD = [YTD]
+			RETURN
+			DIVIDE(
+			    SUMX(
+			        FILTER(ALL(Customers[CustomerName]), [YTD] >= CurrentYTD),
+			        [YTD]
+			    ),
+			    [Grand Total YTD]
+			)
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 71b72d12-9c9c-4c27-a5d2-0694612a1e36
+
+		changedProperty = IsHidden
+
+	measure 'Top N' = 25
+		formatString: 0
+		lineageTag: a0b81a38-91ab-43ef-b716-ecc264e377cc
+
+		changedProperty = IsHidden
+
+	measure 'Grand Total PYTD' = CALCULATE([PYTD], ALL(Customers))
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: fc21237a-8029-4690-b1f1-35abb9c167c4
+
+		changedProperty = IsHidden
+
+	measure 'Subtotal YTD' =
+			
+			SUMX(
+			    FILTER(ALL(Customers[CustomerName]), [Rank] <= [Top N]),
+			    [YTD]
+			)
+		formatString: "₹"\ #,0.###############;#,0.###############\ -"₹";"₹"\ #,0.###############
+		lineageTag: ab11043e-1aaf-46ec-8674-5f4dbeb8a4c7
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-IN"}
+
+	measure 'Subtotal PYTD' =
+			
+			SUMX(
+			    FILTER(ALL(Customers[CustomerName]), [Rank] <= [Top N]),
+			    [PYTD]
+			)
+		formatString: "₹"\ #,0.###############;#,0.###############\ -"₹";"₹"\ #,0.###############
+		lineageTag: 7df1a209-66a3-44e7-a4f6-006813a551b9
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-IN"}
+
+	measure 'Summary YTD' =
+			
+			SWITCH(
+			    SELECTEDVALUE(Summary[Row]),
+			    "Subtotal", [Subtotal YTD],
+			    "Other",    [Grand Total YTD] - [Subtotal YTD],
+			    "Total",    [Grand Total YTD]
+			)
+		formatString: "₹"\ #,0.###############;#,0.###############\ -"₹";"₹"\ #,0.###############
+		lineageTag: 42512d06-cc0b-4aa0-849e-07e739948531
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-IN"}
+
+	measure 'Summary PYTD' =
+			
+			SWITCH(
+			    SELECTEDVALUE(Summary[Row]),
+			    "Subtotal", [Subtotal PYTD],
+			    "Other",    [Grand Total PYTD] - [Subtotal PYTD],
+			    "Total",    [Grand Total PYTD]
+			)
+		formatString: "₹"\ #,0.###############;#,0.###############\ -"₹";"₹"\ #,0.###############
+		lineageTag: 74b47efd-5a2d-49d7-ab25-2cd4800401fe
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-IN"}
+
+	measure Spacer = ""
+		lineageTag: 11987ab5-ed6b-41fe-9f61-64a69c7af4a2
+
+		changedProperty = IsHidden
+
+	measure 'Cust YTD' =
+			
+			CALCULATE([YTD], TREATAS(VALUES('Display Rows'[Label]), Customers[CustomerName]))
+		formatString: "₹"\ #,0.###############;#,0.###############\ -"₹";"₹"\ #,0.###############
+		lineageTag: aa9aa771-b014-43c9-ba99-9c05479ffcda
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-IN"}
+
+	measure 'Cust PYTD' =
+			
+			VAR CustomerName =
+			    SELECTEDVALUE('Display Rows'[Label])
+			VAR PreviousYearEnd =
+			    EDATE([As Of Date], -12)
+			RETURN
+			    CALCULATE(
+			        [Total Sales],
+			        REMOVEFILTERS('Date'),
+			        Customers[CustomerName] = CustomerName,
+			        DATESBETWEEN(
+			            'Date'[Date],
+			            DATE(YEAR([As Of Date]) - 1, 1, 1),
+			            PreviousYearEnd
+			        )
+			    )
+		formatString: "₹"\ #,0.###############;#,0.###############\ -"₹";"₹"\ #,0.###############
+		lineageTag: d7cd8582-e206-4753-908c-2197253964ac
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-IN"}
+
+	measure 'Cust Rank' =
+			
+			RANKX(ALL(Customers[CustomerName]), [YTD], [Cust YTD], DESC, Dense)
+		formatString: 0
+		lineageTag: b663873d-3359-4932-ac20-94c5ecdbfbee
+
+		changedProperty = IsHidden
+
+	measure 'Show Row' =
+			
+			IF(
+			    SELECTEDVALUE('Display Rows'[Type]) = "Summary" || [Cust Rank] <= [Top N],
+			    1,
+			    0
+			)
+		formatString: 0
+		lineageTag: c1fe5890-c0be-4722-86ef-00de14c60d1c
+
+		changedProperty = IsHidden
+
+	measure 'Row Rank' =
+			
+			SWITCH(
+			    SELECTEDVALUE('Display Rows'[Label]),
+			    "Subtotal", 1001,
+			    "Other", 1002,
+			    "Total", 1003,
+			    [Cust Rank]
+			)
+		lineageTag: 977d3840-a2fd-42b8-983d-75af717d1aec
+
+		formatStringDefinition = IF(SELECTEDVALUE('Display Rows'[Type]) = "Summary", ";;;", "0")
+
+		changedProperty = IsHidden
+
+	measure 'Row YTD' =
+			
+			SWITCH(
+			    SELECTEDVALUE('Display Rows'[Label]),
+			    "Subtotal", [Subtotal YTD],
+			    "Other", [Grand Total YTD] - [Subtotal YTD],
+			    "Total", [Grand Total YTD],
+			    [Cust YTD]
+			)
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 05709026-fe40-4586-930d-f5079e16ad61
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	measure 'Row PYTD' =
+			
+			SWITCH(
+			    SELECTEDVALUE('Display Rows'[Label]),
+			    "Subtotal", [Subtotal PYTD],
+			    "Other", [Grand Total PYTD] - [Subtotal PYTD],
+			    "Total", [Grand Total PYTD],
+			    [Cust PYTD]
+			)
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 0fa14570-0413-4c6c-bdf0-7e4aff69a17b
+
+		changedProperty = IsHidden
+
+	measure 'Row YoY' =
+			
+			[Row YTD] - [Row PYTD]
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: c3cf1f9b-84a0-4726-bfab-fbb8a4c57b50
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	measure 'Row YoY %' =
+			
+			DIVIDE([Row YoY], [Grand Total YTD] - [Grand Total PYTD])
+		formatString: 0%;-0%;0%
+		lineageTag: 56985dec-32cb-43fa-9922-88944d8cfa53
+
+		changedProperty = IsHidden
+
+	measure 'Row Cumulative %' =
+			
+			VAR CurrentYTD = [Cust YTD]
+			RETURN
+			IF(
+			    SELECTEDVALUE('Display Rows'[Type]) = "Customer",
+			    DIVIDE(
+			        SUMX(FILTER(ALL(Customers[CustomerName]), [YTD] >= CurrentYTD), [YTD]),
+			        [Grand Total YTD]
+			    )
+			)
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 0632114c-9832-4357-bb6c-2a3bd30cec17
+
+		changedProperty = IsHidden
+
+	measure 'Row % of Total' =
+			
+			DIVIDE([Row YTD], [Grand Total YTD])
+		formatString: 0.00%;-0.00%;0.00%
+		lineageTag: 136e044d-11d6-4702-9a14-7c68778195cf
+
+		changedProperty = IsHidden
+
+	measure 'Row TTM' =
+			
+			VAR Sub = SUMX(FILTER(ALL(Customers[CustomerName]), [Rank] <= [Top N]), [TTM])
+			VAR Tot = CALCULATE([TTM], ALL(Customers))
+			RETURN
+			SWITCH(
+			    SELECTEDVALUE('Display Rows'[Label]),
+			    "Subtotal", Sub,
+			    "Other", Tot - Sub,
+			    "Total", Tot,
+			    CALCULATE([TTM], TREATAS(VALUES('Display Rows'[Label]), Customers[CustomerName]))
+			)
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: 591db4a0-2fe7-4755-b93f-53b611072962
+
+		changedProperty = IsHidden
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	measure 'Row 2024' =
+			
+			VAR Sub = SUMX(FILTER(ALL(Customers[CustomerName]), [Rank] <= [Top N]), [Sales 2024])
+			VAR Tot = CALCULATE([Sales 2024], ALL(Customers))
+			RETURN
+			SWITCH(
+			    SELECTEDVALUE('Display Rows'[Label]),
+			    "Subtotal", Sub,
+			    "Other", Tot - Sub,
+			    "Total", Tot,
+			    CALCULATE([Sales 2024], TREATAS(VALUES('Display Rows'[Label]), Customers[CustomerName]))
+			)
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: c7320c83-d6f8-4f2e-8acb-c7b8e4528ba9
+
+		changedProperty = IsHidden
+
+	measure 'Row 2025' =
+			
+			VAR Sub = SUMX(FILTER(ALL(Customers[CustomerName]), [Rank] <= [Top N]), [Sales 2025])
+			VAR Tot = CALCULATE([Sales 2025], ALL(Customers))
+			RETURN
+			SWITCH(
+			    SELECTEDVALUE('Display Rows'[Label]),
+			    "Subtotal", Sub,
+			    "Other", Tot - Sub,
+			    "Total", Tot,
+			    CALCULATE([Sales 2025], TREATAS(VALUES('Display Rows'[Label]), Customers[CustomerName]))
+			)
+		formatString: \$#,0;(\$#,0);\$#,0
+		lineageTag: fd06dbdf-b6a8-48e2-b8bc-a6d27f1d8560
+
+		changedProperty = IsHidden
+
+	measure 'Sales 2024' = CALCULATE([Total Sales], 'Date'[Year] = 2024)
+		formatString: "₹"\ #,0.###############;#,0.###############\ -"₹";"₹"\ #,0.###############
+		lineageTag: df60d26d-4ac8-4937-883b-81567d0a75ae
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-IN"}
+
+	measure 'Row Background Color' =
+			
+			SWITCH(
+			    SELECTEDVALUE('Display Rows'[Label]),
+			    "Subtotal", "#D9EAD3",
+			    "Other", "#FCE4D6",
+			    "Total", "#B4C7E7",
+			    BLANK()
+			)
+		lineageTag: c6fb2ae8-7b6b-4acc-aff3-ad72c2f89c57
+
+	column InvoiceID
+		dataType: int64
+		formatString: 0
+		lineageTag: e27fc11a-b129-402b-8799-b37ceef2cafe
+		summarizeBy: count
+		sourceColumn: InvoiceID
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column InvoiceDate
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 74c87481-5ad4-4437-b0ad-c443956b2062
+		summarizeBy: none
+		sourceColumn: InvoiceDate
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column CustomerID
+		dataType: string
+		lineageTag: d8641aac-8bf0-4779-acf2-24997df7afec
+		summarizeBy: none
+		sourceColumn: CustomerID
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column ProductCategory
+		dataType: string
+		lineageTag: b22864e3-1730-41a5-8ff2-727c63e9a078
+		summarizeBy: none
+		sourceColumn: ProductCategory
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column SalesAmount
+		dataType: decimal
+		lineageTag: 40076883-0d3b-4f0c-a6b1-90c58a79bd78
+		summarizeBy: sum
+		sourceColumn: SalesAmount
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition Sales = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents("C:\Users\RINKU\Desktop\SunflowerLab-LearningResources\Sales.csv"),[Delimiter=",", Columns=5, Encoding=1252, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"InvoiceID", Int64.Type}, {"InvoiceDate", type date}, {"CustomerID", type text}, {"ProductCategory", type text}, {"SalesAmount", type number}}),
+				    #"Changed Type1" = Table.TransformColumnTypes(#"Changed Type",{{"SalesAmount", Currency.Type}})
+				in
+				    #"Changed Type1"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+
